@@ -5,13 +5,9 @@ import { MoonLoader } from "react-spinners";
 
 const Chat = ({ ingredientList }) => {
   // logic
+  const endpoint = process.env.REACT_APP_SERVER_ADDRESS;
 
   const [value, setValue] = useState("");
-  // 페이지 진입시 딱 한번 실행
-  useEffect(() => {
-    console.log("ingredientList", ingredientList);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // TODO: set함수 추가하기
   const [messages] = useState([]); // chatGPT와 사용자의 대화 메시지 배열
@@ -27,6 +23,36 @@ const Chat = ({ ingredientList }) => {
     event.preventDefault();
     console.log("메시지 보내기");
   };
+
+  const sendInfo = async () => {
+    console.log("🚀 ~ sendInfo ~ endpoint:", endpoint);
+
+    try {
+      // API 호출
+      const response = await fetch(`${endpoint}/recipe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredientList }),
+      });
+
+      const result = await response.json();
+      console.log("🚀 ~ sendInfo ~ result:", result);
+
+      // UI작업
+      if (!result.data) return;
+
+      // 예외처리
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // 페이지 진입시 딱 한번 실행
+  useEffect(() => {
+    console.log("ingredientList", ingredientList);
+    sendInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // view
   return (

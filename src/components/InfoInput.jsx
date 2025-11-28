@@ -9,7 +9,7 @@ const InfoInput = ({ content, onRemove, onChange }) => {
 
   const handleChange = (event) => {
     const { value } = event.target; // 사용자 입력값
-    onChange(...content, value);
+    onChange({ ...content, value });
     setValue(value);
   };
 
