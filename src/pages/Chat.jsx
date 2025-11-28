@@ -10,9 +10,39 @@ const Chat = ({ ingredientList }) => {
   const [value, setValue] = useState("");
 
   // TODO: set함수 추가하기
-  const [messages] = useState([]); // chatGPT와 사용자의 대화 메시지 배열
-  const [isInfoLoading] = useState(false); // 최초 정보 요청시 로딩
-  const [isMessageLoading] = useState(true); // 사용자와 메시지 주고 받을때 로딩
+  const [messages, setMessages] = useState([]); // chatGPT와 사용자의 대화 메시지 배열
+  const [isInfoLoading, setIsInfoLoading] = useState(true); // 최초 정보 요청시 로딩
+  const [isMessageLoading, setIsMessageLoading] = useState(true); // 사용자와 메시지 주고 받을때 로딩
+  const [infoMessages, setInfoMessages] = useState([]);
+
+  const sendMessage = async (userMessage) => {
+    setIsMessageLoading(true);
+    try {
+      const response = await fetch(`${endpoint}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userMessage,
+          messages: [...infoMessages, ...messages],
+        }),
+      });
+
+      const result = await response.json();
+
+      // chatGPT의 답변 추가
+      const { role, content } = result.data;
+      const assistantMessage = { role, content };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      console.log("🚀 ~ sendMessage ~ result:", result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      // try 혹은 error 구문 실행후 실행되는 곳
+      setIsMessageLoading(false);
+    }
+  };
+
   const hadleChange = (event) => {
     const { value } = event.target;
     console.log("value==>", value);
@@ -21,11 +51,20 @@ const Chat = ({ ingredientList }) => {
 
   const hadleSubmit = (event) => {
     event.preventDefault();
-    console.log("메시지 보내기");
+
+    const userMessage = {
+      role: "user",
+      content: value,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+
+    sendMessage(userMessage);
+    setValue("");
   };
 
   const sendInfo = async () => {
-    console.log("🚀 ~ sendInfo ~ endpoint:", endpoint);
+    setIsInfoLoading(true);
 
     try {
       // API 호출
@@ -36,20 +75,33 @@ const Chat = ({ ingredientList }) => {
       });
 
       const result = await response.json();
-      console.log("🚀 ~ sendInfo ~ result:", result);
 
       // UI작업
       if (!result.data) return;
+      // 데이터가 제대로 들어온경우
+      const removeLastDataList = result.data.filter(
+        (_, index, array) => array.length - 1 !== index
+      );
+
+      // 초기 기본답변 저장
+      setInfoMessages(removeLastDataList);
+
+      // 첫 assistant답변 UI에 추가
+      const { role, content } = result.data[result.data.length - 1];
+
+      // prev: 배열
+      setMessages((prev) => [...prev, { role, content }]);
 
       // 예외처리
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsInfoLoading(false);
     }
   };
 
   // 페이지 진입시 딱 한번 실행
   useEffect(() => {
-    console.log("ingredientList", ingredientList);
     sendInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
